@@ -38,7 +38,9 @@ from typing import Tuple
 np.random.seed(42)
 
 # Define some variables
-labels = ("airplane", "car", "cat", "dog", "flower", "fruit", "motorbike", "person")
+labels = (0, 1, 2, 3, 4, 5, 6, 7)
+label_strings = ("airplane", "car", "cat", "dog", "flower", "fruit", "motorbike", "person")
+label_count = len(labels)
 
 """# Data setup"""
 
@@ -63,7 +65,7 @@ def load_dataset(dataset_directory: str):# -> Tuple[PIL.JpegImagePlugin.JpegImag
       filepath = os.path.join(root, filename)
       for label in labels:
         # An example is labeled if its file path contains the label in its name
-        if label in filename:
+        if label_strings[label] in filename:
           x_temp.append(Image.open(filepath))
           y_temp.append(label)
   return x_temp, y_temp
@@ -99,8 +101,8 @@ def resize_images(images, new_size):
   return images
 
 
-ideal_size = get_average_image_size(x_raw)
-x_resized = resize_images(x_raw, ideal_size)
+avg_size = get_average_image_size(x_raw)
+x_resized = resize_images(x_raw, avg_size)
 
 # Starts splitting up the data
 
@@ -145,6 +147,59 @@ print("y dev shape = ", y_dev.shape)
 print("x train shape = ", x_train.shape)
 print("y train shape = ", y_train.shape)
 
-testIndex = 1111
-plt.imshow(x_train_all[testIndex])
-y_train_all[testIndex]
+testIndexes = (1111, 2222, 3333)
+for testIndex in testIndexes:
+  print(y_train_all[testIndex])
+  plt.imshow(x_train_all[testIndex])
+  plt.axis('off')
+  plt.show()
+  print()
+
+"""# Model"""
+
+# Builds the CNN model
+
+
+# TODO As of now, this uses the base CNN demo model, with some minor changes
+model = tf.keras.models.Sequential()
+# Convolution layer 1
+# 3 = RGB channels
+model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=7, activation="relu", padding = "same",
+                                 input_shape=[avg_size[0], avg_size[1], 3]))
+# Pooling layer 1
+model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
+# Convolution layer 2
+model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
+# Convolution layer 3
+model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
+# Pooling layer 2
+model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
+# Convolution layer 4
+model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
+# Convolution layer 5
+model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
+# Pooling layer 3
+model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
+# Flattening layer
+model.add(tf.keras.layers.Flatten())
+# Fully connected layer 1
+model.add(tf.keras.layers.Dense(units=128, activation="relu"))
+tf.keras.layers.Dropout(0.5)
+# Fully connected layer 2
+model.add(tf.keras.layers.Dense(units=64, activation="relu"))
+tf.keras.layers.Dropout(0.5)
+# Output layer
+model.add(tf.keras.layers.Dense(units = label_count, activation= "softmax"))
+
+model.summary()
+
+model.compile(loss="sparse_categorical_crossentropy",
+              optimizer="adam",
+              metrics=["accuracy"])
+
+history = model.fit(
+    x_train,
+    y_train,
+    batch_size = 100,
+    epochs = 5,
+    validation_data = (x_dev, y_dev))
