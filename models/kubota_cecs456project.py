@@ -14,6 +14,7 @@ Original file is located at
 
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 import sklearn
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -160,34 +161,54 @@ for testIndex in testIndexes:
 # Builds the CNN model
 
 
-# TODO As of now, this uses the base CNN demo model, with some minor changes
 model = tf.keras.models.Sequential()
-# Convolution layer 1
 # 3 = RGB channels
-model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=7, activation="relu", padding = "same",
-                                 input_shape=[avg_size[0], avg_size[1], 3]))
-# Pooling layer 1
-model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
-# Convolution layer 2
-model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
-# Convolution layer 3
-model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
-# Pooling layer 2
-model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
-# Convolution layer 4
-model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
-# Convolution layer 5
-model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
-# Pooling layer 3
-model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
-# Flattening layer
-model.add(tf.keras.layers.Flatten())
-# Fully connected layer 1
-model.add(tf.keras.layers.Dense(units=128, activation="relu"))
-tf.keras.layers.Dropout(0.5)
-# Fully connected layer 2
-model.add(tf.keras.layers.Dense(units=64, activation="relu"))
-tf.keras.layers.Dropout(0.5)
+model_input_shape = [avg_size[1], avg_size[0], 3]
+
+# # Convolution layer 1
+# model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=7, activation="relu", padding = "same",
+#                                  input_shape = model_input_shape))
+# # Pooling layer 1
+# model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
+# # Convolution layer 2
+# model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
+# # Convolution layer 3
+# model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
+# # Pooling layer 2
+# model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
+# # Convolution layer 4
+# model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
+# # Convolution layer 5
+# model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
+# # Pooling layer 3
+# model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
+# # Flattening layer
+# model.add(tf.keras.layers.Flatten())
+# # Fully connected layer 1
+# model.add(tf.keras.layers.Dense(units=128, activation="relu"))
+# tf.keras.layers.Dropout(0.5)
+# # Fully connected layer 2
+# model.add(tf.keras.layers.Dense(units=64, activation="relu"))
+# tf.keras.layers.Dropout(0.5)
+
+# TODO Tweak this model to see if accuracy can be improved
+# Add the first convolutional layer
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape = model_input_shape))
+# Add a pooling layer
+model.add(MaxPooling2D((2, 2)))
+# Add another convolutional layer
+model.add(Conv2D(64, (3, 3), activation='relu'))
+# Add another pooling layer
+model.add(MaxPooling2D((2, 2)))
+# Add another convolutional layer
+model.add(Conv2D(128, (3, 3), activation='relu'))
+# Add another pooling layer
+model.add(MaxPooling2D((2, 2)))
+# Flatten the tensor output from the convolutional layers
+model.add(Flatten())
+# Add a dense layer
+model.add(Dense(64, activation='relu'))
+
 # Output layer
 model.add(tf.keras.layers.Dense(units = label_count, activation= "softmax"))
 
@@ -197,9 +218,45 @@ model.compile(loss="sparse_categorical_crossentropy",
               optimizer="adam",
               metrics=["accuracy"])
 
+# The model in the CNN demo exhausts the free tier Colab resources
 history = model.fit(
     x_train,
     y_train,
     batch_size = 100,
     epochs = 5,
     validation_data = (x_dev, y_dev))
+
+# Prints loss and accuracy of the model's predictions
+
+
+pre_predictions = model.predict(
+    x = x_test,
+    batch_size = 100
+)
+
+# Converts the arrays of probabilities (for each image being each label) to the actual labels
+y_hat = np.argmax(pre_predictions, axis = 1)
+
+total_loss = model.evaluate(x = x_test, y = y_hat)
+print("Total loss =", total_loss)
+
+print("Total loss? =", total_loss[0])
+print("Total accuracy? =", total_loss[1])
+
+
+total_correct = 0
+total_examples = len(y_test)
+for index in range(total_examples):
+  if (y_test[index] == y_hat[index]):
+    total_correct += 1
+print("Total accuracy =", (total_correct / total_examples))
+
+# Show predictions made
+
+
+for i in range(10):
+  print(f"Prediction #{i + 1}: Label = \"{label_strings[y_hat[i]]}\"")
+  plt.imshow(x_test[i], cmap="binary")
+  plt.axis('off')
+  plt.show()
+  print()
