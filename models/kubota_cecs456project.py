@@ -139,6 +139,9 @@ x_train, x_test_all, y_train, y_test_all = train_test_split(x_train_all, y_train
 # From the 40% testing, it gets split into 20% validation and 20% (actual) testing
 x_dev, x_test, y_dev, y_test = train_test_split(x_test_all, y_test_all, test_size = 0.5, random_state = 42)
 
+# Verify the datasets are split correctly
+
+
 print("x train all shape = ", x_train_all.shape)
 print("y train all shape = ", y_train_all.shape)
 print("x test shape = ", x_test.shape)
@@ -148,13 +151,24 @@ print("y dev shape = ", y_dev.shape)
 print("x train shape = ", x_train.shape)
 print("y train shape = ", y_train.shape)
 
-testIndexes = (1111, 2222, 3333)
-for testIndex in testIndexes:
-  print(y_train_all[testIndex])
-  plt.imshow(x_train_all[testIndex])
-  plt.axis('off')
-  plt.show()
-  print()
+
+# Get subsets of the training dataset to show
+x_sub, y_sub = [], []
+sub_amount = 10
+set_division_factor = int(m / sub_amount)
+for i in range(sub_amount):
+  x_sub.append(x_train_all[i * set_division_factor])
+  y_sub.append(y_train_all[i * set_division_factor])
+
+# Show each image and label in the subsets
+plt.figure(figsize=(7.2, 2.4))
+for index, image in enumerate(x_sub):
+    plt.subplot(1, sub_amount, index + 1)
+    plt.imshow(image, cmap="binary", interpolation="nearest")
+    plt.axis('off')
+    plt.title(label_strings[y_sub[index]], fontsize=8)
+plt.subplots_adjust(wspace=0.2, hspace=0.5)
+plt.show()
 
 """# Model"""
 
@@ -254,9 +268,15 @@ print("Total accuracy =", (total_correct / total_examples))
 # Show predictions made
 
 
-for i in range(10):
-  print(f"Prediction #{i + 1}: Label = \"{label_strings[y_hat[i]]}\"")
-  plt.imshow(x_test[i], cmap="binary")
-  plt.axis('off')
-  plt.show()
-  print()
+sub_test_amount = 10
+x_sub = x_test[:sub_test_amount]
+y_sub = y_hat[:sub_test_amount]
+
+plt.figure(figsize=(7.2, 2.4))
+for index, image in enumerate(x_sub):
+    plt.subplot(1, sub_test_amount, index + 1)
+    plt.imshow(image, cmap="binary", interpolation="nearest")
+    plt.axis('off')
+    plt.title(label_strings[y_sub[index]], fontsize=8)
+plt.subplots_adjust(wspace=0.2, hspace=0.5)
+plt.show()
