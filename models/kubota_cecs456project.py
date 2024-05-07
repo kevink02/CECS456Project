@@ -42,6 +42,8 @@ np.random.seed(42)
 labels = (0, 1, 2, 3, 4, 5, 6, 7)
 label_strings = ("airplane", "car", "cat", "dog", "flower", "fruit", "motorbike", "person")
 label_count = len(labels)
+epoch_amount = 5
+batch_size = 128
 
 """# Data setup"""
 
@@ -179,52 +181,27 @@ model = tf.keras.models.Sequential()
 # 3 = RGB channels
 model_input_shape = [avg_size[1], avg_size[0], 3]
 
-# # Convolution layer 1
-# model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=7, activation="relu", padding = "same",
-#                                  input_shape = model_input_shape))
-# # Pooling layer 1
-# model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
-# # Convolution layer 2
-# model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
-# # Convolution layer 3
-# model.add(tf.keras.layers.Conv2D(filters=128, kernel_size=3, activation="relu", padding = "same"))
-# # Pooling layer 2
-# model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
-# # Convolution layer 4
-# model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
-# # Convolution layer 5
-# model.add(tf.keras.layers.Conv2D(filters=256, kernel_size=3, activation="relu", padding = "same"))
-# # Pooling layer 3
-# model.add(tf.keras.layers.MaxPool2D(pool_size=2, strides=2))
-# # Flattening layer
-# model.add(tf.keras.layers.Flatten())
-# # Fully connected layer 1
-# model.add(tf.keras.layers.Dense(units=128, activation="relu"))
-# tf.keras.layers.Dropout(0.5)
-# # Fully connected layer 2
-# model.add(tf.keras.layers.Dense(units=64, activation="relu"))
-# tf.keras.layers.Dropout(0.5)
-
-# TODO Tweak this model to see if accuracy can be improved
 # Add the first convolutional layer
-model.add(Conv2D(32, (3, 3), activation='relu', input_shape = model_input_shape))
+model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu",
+                                 input_shape = model_input_shape))
 # Add a pooling layer
-model.add(MaxPooling2D((2, 2)))
+model.add(tf.keras.layers.MaxPooling2D((2, 2)))
 # Add another convolutional layer
-model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu"))
 # Add another pooling layer
-model.add(MaxPooling2D((2, 2)))
+model.add(tf.keras.layers.MaxPooling2D((2, 2)))
 # Add another convolutional layer
-model.add(Conv2D(128, (3, 3), activation='relu'))
+model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu"))
 # Add another pooling layer
-model.add(MaxPooling2D((2, 2)))
+model.add(tf.keras.layers.MaxPooling2D((2, 2)))
 # Flatten the tensor output from the convolutional layers
-model.add(Flatten())
+model.add(tf.keras.layers.Flatten())
 # Add a dense layer
-model.add(Dense(64, activation='relu'))
-
+model.add(tf.keras.layers.Dense(units = 64, activation = "relu"))
+# Add a dropout layer
+# model.add(tf.keras.layers.Dropout(0.5))
 # Output layer
-model.add(tf.keras.layers.Dense(units = label_count, activation= "softmax"))
+model.add(tf.keras.layers.Dense(units = label_count, activation = "softmax"))
 
 model.summary()
 
@@ -236,41 +213,39 @@ model.compile(loss="sparse_categorical_crossentropy",
 history = model.fit(
     x_train,
     y_train,
-    batch_size = 100,
-    epochs = 5,
+    batch_size = batch_size,
+    epochs = epoch_amount,
     validation_data = (x_dev, y_dev))
+
+"""# Model Evaluation"""
 
 # Prints loss and accuracy of the model's predictions
 
 
-pre_predictions = model.predict(
+y_evaluations = model.evaluate(x = x_test, y = y_test)
+print("Total loss =", y_evaluations[0])
+print("Total accuracy =", y_evaluations[1])
+
+# Try predicting using the test set
+
+
+y_probabilities = model.predict(
     x = x_test,
-    batch_size = 100
+    batch_size = batch_size
 )
 
 # Converts the arrays of probabilities (for each image being each label) to the actual labels
-y_hat = np.argmax(pre_predictions, axis = 1)
+y_predictions = np.argmax(y_probabilities, axis = 1)
 
-total_loss = model.evaluate(x = x_test, y = y_hat)
-print("Total loss =", total_loss)
-
-print("Total loss? =", total_loss[0])
-print("Total accuracy? =", total_loss[1])
-
-
-total_correct = 0
-total_examples = len(y_test)
-for index in range(total_examples):
-  if (y_test[index] == y_hat[index]):
-    total_correct += 1
-print("Total accuracy =", (total_correct / total_examples))
+print("Predictions =", np.array(label_strings)[y_predictions])
+print("Actual =", np.array(label_strings)[y_test])
 
 # Show predictions made
 
 
 sub_test_amount = 10
 x_sub = x_test[:sub_test_amount]
-y_sub = y_hat[:sub_test_amount]
+y_sub = y_test[:sub_test_amount]
 
 plt.figure(figsize=(7.2, 2.4))
 for index, image in enumerate(x_sub):
