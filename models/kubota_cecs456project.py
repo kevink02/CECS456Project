@@ -32,9 +32,6 @@ import os
 import PIL
 from PIL import Image
 
-# For specifying variable types
-from typing import Tuple
-
 # Set the random seed
 np.random.seed(42)
 
@@ -42,10 +39,13 @@ np.random.seed(42)
 labels = (0, 1, 2, 3, 4, 5, 6, 7)
 label_strings = ("airplane", "car", "cat", "dog", "flower", "fruit", "motorbike", "person")
 label_count = len(labels)
-epoch_amount = 5
-batch_size = 128
+random_state = 42
+epoch_amount = 6
+batch_size = 32
+# image height and width, 3 RGB channels
+input_image_shape = (64, 64, 3)
 
-"""# Data setup"""
+"""# Data Retrieval (requires Kaggle API token key)"""
 
 # Load the dataset from Kaggle
 
@@ -55,11 +55,10 @@ batch_size = 128
 dataset_path = "https://www.kaggle.com/datasets/prasunroy/natural-images"
 od.download(dataset_path)
 
-# Retrieves the data
-
+"""# Data Setup"""
 
 # Returns the images and labels of all examples in the dataset
-def load_dataset(dataset_directory: str):# -> Tuple[PIL.JpegImagePlugin.JpegImageFile, str]:
+def load_dataset(dataset_directory: str):
   x_temp, y_temp = [], []
   # Traverse through the directory
   for root, directories, files in os.walk(dataset_directory):
@@ -80,154 +79,98 @@ if len(x_raw) != len(y_raw):
   Exception("x train and y train have unequal sizes")
 m = len(x_raw)
 
-# Prepares the data before splitting it into training, validation, and test sets
-
-
-# Returns the average dimension size of the entire dataset
-def get_average_image_size(images):
-  avg_height = 0
-  avg_width = 0
-  for image in images:
-    avg_height += image.height
-    avg_width += image.width
-  avg_height /= m
-  avg_width /= m
-  avg_height = int(avg_height)
-  avg_width = int(avg_width)
-  return avg_height, avg_width
-
-
-# Resizes all dataset images to be the same size
+# Resize all dataset images to be the same size
 def resize_images(images, new_size):
   for i in range(len(images)):
     images[i] = images[i].resize(new_size)
   return images
 
+x_resized = resize_images(x_raw, (input_image_shape[0], input_image_shape[1]))
 
-avg_size = get_average_image_size(x_raw)
-x_resized = resize_images(x_raw, avg_size)
-
-# Starts splitting up the data
-
-
-'''
-For reference, output from HW 3 for set shapes
-x train all  (60000, 28, 28)
-y train all  (60000,)
-x train  (55000, 28, 28)
-y train  (55000,)
-x dev  (5000, 28, 28)
-y dev  (5000,)
-x test  (10000, 28, 28)
-y test  (10000,)
-'''
-
-# Maybe also try np.asarray and np.copy
+# Split the entire dataset into the appropriate smaller datasets
 x_train_all = np.array(x_resized)
 y_train_all = np.array(y_raw)
 
-# Another working way to split the datasets
-# twenty_percent_split = int(m * 0.2)
-# x_test = x_train_all[:twenty_percent_split]
-# y_test = y_train_all[:twenty_percent_split]
-# x_dev = x_train_all[twenty_percent_split:2 * twenty_percent_split]
-# y_dev = y_train_all[twenty_percent_split:2 * twenty_percent_split]
-# x_train = x_train_all[2 * twenty_percent_split:]
-# y_train = y_train_all[2 * twenty_percent_split:]
-
-# Split the datasets
 # 60% training, 40% testing
-x_train, x_test_all, y_train, y_test_all = train_test_split(x_train_all, y_train_all, test_size = 0.4, random_state = 42)
+x_train, x_test_all, y_train, y_test_all = train_test_split(x_train_all, y_train_all, test_size = 0.4, random_state = random_state)
 # From the 40% testing, it gets split into 20% validation and 20% (actual) testing
-x_dev, x_test, y_dev, y_test = train_test_split(x_test_all, y_test_all, test_size = 0.5, random_state = 42)
-
-# Verify the datasets are split correctly
-
+x_dev, x_test, y_dev, y_test = train_test_split(x_test_all, y_test_all, test_size = 0.5, random_state = random_state)
 
 print("x train all shape = ", x_train_all.shape)
 print("y train all shape = ", y_train_all.shape)
-print("x test shape = ", x_test.shape)
-print("y test shape = ", y_test.shape)
-print("x dev shape = ", x_dev.shape)
-print("y dev shape = ", y_dev.shape)
 print("x train shape = ", x_train.shape)
 print("y train shape = ", y_train.shape)
+print("x dev shape = ", x_dev.shape)
+print("y dev shape = ", y_dev.shape)
+print("x test shape = ", x_test.shape)
+print("y test shape = ", y_test.shape)
 
-
-# Get subsets of the training dataset to show
-x_sub, y_sub = [], []
-sub_amount = 10
-set_division_factor = int(m / sub_amount)
-for i in range(sub_amount):
-  x_sub.append(x_train_all[i * set_division_factor])
-  y_sub.append(y_train_all[i * set_division_factor])
-
-# Show each image and label in the subsets
-plt.figure(figsize=(7.2, 2.4))
-for index, image in enumerate(x_sub):
-    plt.subplot(1, sub_amount, index + 1)
-    plt.imshow(image, cmap="binary", interpolation="nearest")
-    plt.axis('off')
-    plt.title(label_strings[y_sub[index]], fontsize=8)
-plt.subplots_adjust(wspace=0.2, hspace=0.5)
-plt.show()
-
-"""# Model"""
-
-# Builds the CNN model
-
+"""# Model Training"""
 
 model = tf.keras.models.Sequential()
-# 3 = RGB channels
-model_input_shape = [avg_size[1], avg_size[0], 3]
 
-# Add the first convolutional layer
-model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu",
-                                 input_shape = model_input_shape))
-# Add a pooling layer
+model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu", padding = "same", input_shape = input_image_shape))
+model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu", padding = "same"))
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-# Add another convolutional layer
-model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu"))
-# Add another pooling layer
+model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu", padding = "same"))
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-# Add another convolutional layer
-model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu"))
-# Add another pooling layer
+model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu", padding = "same"))
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-# Flatten the tensor output from the convolutional layers
+
 model.add(tf.keras.layers.Flatten())
-# Add a dense layer
-model.add(tf.keras.layers.Dense(units = 64, activation = "relu"))
-# Add a dropout layer
-# model.add(tf.keras.layers.Dropout(0.5))
-# Output layer
+model.add(tf.keras.layers.Dense(units = 128, activation = "relu"))
 model.add(tf.keras.layers.Dense(units = label_count, activation = "softmax"))
 
 model.summary()
 
-model.compile(loss="sparse_categorical_crossentropy",
-              optimizer="adam",
-              metrics=["accuracy"])
+model.compile(
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = False),
+    optimizer = tf.keras.optimizers.Adam(learning_rate = 3 * 1e-4),
+    metrics = ["accuracy"]
+    )
 
-# The model in the CNN demo exhausts the free tier Colab resources
 history = model.fit(
     x_train,
     y_train,
     batch_size = batch_size,
     epochs = epoch_amount,
-    validation_data = (x_dev, y_dev))
+    validation_data = (x_dev, y_dev)
+    )
+
+"""# Model Graphs"""
+
+model_iter = np.asarray([i for i in range(epoch_amount)])
+model_loss = history.history["loss"]
+model_accuracy = history.history["accuracy"]
+model_val_loss = history.history["val_loss"]
+model_val_accuracy = history.history["val_accuracy"]
+
+plot_titles = ["Train loss", "Train accuracy", "Valid loss", "Valid accuracy"]
+model_data = [model_loss, model_accuracy, model_val_loss, model_val_accuracy]
+plot_colors = ["red", "green", "red", "green"]
+plot_labels = ["Loss", "Accuracy", "Loss", "Accuracy"]
+
+zip_first = zip(plot_titles[:2], model_data[:2], plot_colors[:2], plot_labels[:2])
+zip_last = zip(plot_titles[2:], model_data[2:], plot_colors[2:], plot_labels[2:])
+
+
+def show_graph(zipped_data):
+  for plot_title, model_datum, plot_color, plot_label in zipped_data:
+    plt.plot(model_iter, model_datum, color = plot_color, marker = 'o', linestyle = "solid")
+    plt.title(plot_title)
+    plt.ylabel(plot_label)
+    for it, datum in zip(model_iter, model_datum):
+      formatted = "{:.2f}".format(datum)
+      plt.annotate(formatted, xy = (it, datum), xytext = (2, 2), textcoords = "offset points")
+    plt.show()
+
+show_graph(zip_first)
+
+show_graph(zip_last)
 
 """# Model Evaluation"""
-
-# Prints loss and accuracy of the model's predictions
-
-
-y_evaluations = model.evaluate(x = x_test, y = y_test)
-print("Total loss =", y_evaluations[0])
-print("Total accuracy =", y_evaluations[1])
-
-# Try predicting using the test set
-
 
 y_probabilities = model.predict(
     x = x_test,
@@ -237,21 +180,22 @@ y_probabilities = model.predict(
 # Converts the arrays of probabilities (for each image being each label) to the actual labels
 y_predictions = np.argmax(y_probabilities, axis = 1)
 
+y_evaluations = model.evaluate(x = x_test, y = y_test)
+print("Total loss =", y_evaluations[0])
+print("Total accuracy =", y_evaluations[1])
+
 print("Predictions =", np.array(label_strings)[y_predictions])
 print("Actual =", np.array(label_strings)[y_test])
 
-# Show predictions made
-
-
 sub_test_amount = 10
 x_sub = x_test[:sub_test_amount]
-y_sub = y_test[:sub_test_amount]
+y_sub = y_predictions[:sub_test_amount]
 
-plt.figure(figsize=(7.2, 2.4))
+plt.figure(figsize = (7.2, 2.4))
 for index, image in enumerate(x_sub):
     plt.subplot(1, sub_test_amount, index + 1)
-    plt.imshow(image, cmap="binary", interpolation="nearest")
+    plt.imshow(image, cmap = "binary", interpolation = "nearest")
     plt.axis('off')
-    plt.title(label_strings[y_sub[index]], fontsize=8)
-plt.subplots_adjust(wspace=0.2, hspace=0.5)
+    plt.title(label_strings[y_sub[index]], fontsize = 8)
+plt.subplots_adjust(wspace = 0.2, hspace = 0.5)
 plt.show()
