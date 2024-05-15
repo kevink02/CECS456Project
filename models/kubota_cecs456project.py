@@ -10,11 +10,11 @@ Original file is located at
 """
 
 # Install necessary packages
+# For reading the dataset from Kaggle
 !pip install opendatasets
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 import sklearn
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -96,6 +96,7 @@ x_train, x_test_all, y_train, y_test_all = train_test_split(x_train_all, y_train
 # From the 40% testing, it gets split into 20% validation and 20% (actual) testing
 x_dev, x_test, y_dev, y_test = train_test_split(x_test_all, y_test_all, test_size = 0.5, random_state = random_state)
 
+# Verify the datasets are reasonably split
 print("x train all shape = ", x_train_all.shape)
 print("y train all shape = ", y_train_all.shape)
 print("x train shape = ", x_train.shape)
@@ -110,17 +111,24 @@ print("y test shape = ", y_test.shape)
 model = tf.keras.models.Sequential()
 
 model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu", padding = "same", input_shape = input_image_shape))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
 model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
 model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu", padding = "same"))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
 
 model.add(tf.keras.layers.Flatten())
 model.add(tf.keras.layers.Dense(units = 128, activation = "relu"))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Dense(units = label_count, activation = "softmax"))
 
 model.summary()
