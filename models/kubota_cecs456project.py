@@ -42,14 +42,12 @@ label_count = len(labels)
 random_state = 42
 epoch_amount = 6
 batch_size = 32
-# image height and width, 3 RGB channels
+# Image height and width, 3 RGB channels
 input_image_shape = (64, 64, 3)
 
 """# Data Retrieval (requires Kaggle API token key)"""
 
 # Load the dataset from Kaggle
-
-
 # Download Kaggle API token key from the Kaggle website while logged into your account
 # Use this key to login when running this code block
 dataset_path = "https://www.kaggle.com/datasets/prasunroy/natural-images"
@@ -112,14 +110,12 @@ model = tf.keras.models.Sequential()
 
 model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu", padding = "same", input_shape = input_image_shape))
 model.add(tf.keras.layers.BatchNormalization())
-model.add(tf.keras.layers.Conv2D(32, (3, 3), activation = "relu", padding = "same"))
-model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu", padding = "same"))
-model.add(tf.keras.layers.BatchNormalization())
+
 model.add(tf.keras.layers.Conv2D(64, (3, 3), activation = "relu", padding = "same"))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+
 model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu", padding = "same"))
 model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Conv2D(128, (3, 3), activation = "relu", padding = "same"))
@@ -191,7 +187,6 @@ y_predictions = np.argmax(y_probabilities, axis = 1)
 y_evaluations = model.evaluate(x = x_test, y = y_test)
 print("Total loss =", y_evaluations[0])
 print("Total accuracy =", y_evaluations[1])
-
 print("Predictions =", np.array(label_strings)[y_predictions])
 print("Actual =", np.array(label_strings)[y_test])
 
